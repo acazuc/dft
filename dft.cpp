@@ -16,9 +16,10 @@ void dft(std::vector<std::complex<double>> &in, std::vector<std::complex<double>
 	std::fill(out.begin(), out.end(), std::complex<double>(0, 0));
 	for (size_t i = 0; i < in.size(); ++i)
 	{
+		double base = 2 * M_PI * i;
 		for (size_t j = 0; j < in.size(); ++j)
 		{
-			double tmp = 2 * M_PI * i * j / in.size();
+			double tmp = base * j / in.size();
 			out[i].real(out[i].real() + in[j].real() * cos(tmp));
 			out[i].imag(out[i].imag() + in[j].real() * sin(tmp));
 		}
@@ -30,16 +31,18 @@ void dft_re(std::vector<std::complex<double>> &in, std::vector<std::complex<doub
 	std::fill(out.begin(), out.end(), std::complex<double>(0, 0));
 	for (size_t i = 0; i < in.size(); ++i)
 	{
-		out[i].real(in[0].real() / in.size() * cos(0) - in[0].imag() / in.size() * sin(0));
+		out[i].real(in[0].real() * cos(0) - in[0].imag() * sin(0));
+		double base = 2 * M_PI * i;
 		for (size_t j = 1; j < in.size() / 2; ++j)
 		{
-			double tmp = 2 * M_PI * i * j / in.size();
-			out[i].real(out[i].real() + in[j].real() / in.size() * 2 * cos(tmp) + in[j].imag() / in.size() * 2 * sin(tmp));
+			double tmp = base * j / in.size();
+			out[i].real(out[i].real() + in[j].real() * 2 * cos(tmp) + in[j].imag() * 2 * sin(tmp));
 		}
 		{
 			double tmp = M_PI * i;
-			out[i].real(out[i].real() + in[in.size() / 2].real() / in.size() * cos(tmp) - in[in.size() / 2].imag() / in.size() * sin(tmp));
+			out[i].real(out[i].real() + in[in.size() / 2].real() * cos(tmp) - in[in.size() / 2].imag() * sin(tmp));
 		}
+		out[i].real(out[i].real() / in.size());
 	}
 }
 
@@ -131,7 +134,7 @@ int main()
 		datas[i].real(datas[i].real() + sin(i / static_cast<double>(datas.size()) * FREQ * 5 * M_PI * 2));
 		datas[i].real(datas[i].real() + sin(i / static_cast<double>(datas.size()) * FREQ * 6 * M_PI * 2));*/
 		//datas[i].real(datas[i].real() + (i % 300) / 300.);
-		//datas[i].real(datas[i].real() + (i % 1500 < 750 ? 1 : -1));
+		datas[i].real(datas[i].real() + (i % 1500 < 750 ? 1 : -1));
 		//datas[i].real(datas[i].real() + rand() / (float)RAND_MAX);
 	}
 	dft(datas, out);
