@@ -6,7 +6,7 @@
 #include <GLFW/glfw3.h>
 
 #define COUNT 1920
-#define FREQ 20
+#define FREQ 2
 
 #define RENDER_WIDTH 1920
 #define RENDER_HEIGHT 1080
@@ -16,13 +16,15 @@ std::vector<std::complex<double>> g_out(COUNT);
 std::vector<std::complex<double>> g_re(COUNT);
 float g_scale = 8;
 
-void dft(std::vector<std::complex<double>> &in, std::vector<std::complex<double>> &out)
+template <typename T>
+void dft(std::vector<std::complex<T>> &in, std::vector<std::complex<T>> &out)
 {
-	std::fill(out.begin(), out.end(), std::complex<double>(0, 0));
-	for (size_t i = 0; i < in.size(); ++i)
+	out.resize(in.size());
+	std::fill(out.begin(), out.end(), std::complex<T>(0, 0));
+	for (size_t i = 0; i < out.size(); ++i)
 	{
-		double base = 2 * M_PI * i / in.size();
-		double tmp = 0;
+		T base = 2 * M_PI * i / in.size();
+		T tmp = 0;
 		for (size_t j = 0; j < in.size(); ++j)
 		{
 			out[i].real(out[i].real() + in[j].real() * cos(tmp));
@@ -32,14 +34,16 @@ void dft(std::vector<std::complex<double>> &in, std::vector<std::complex<double>
 	}
 }
 
-void dft_re(std::vector<std::complex<double>> &in, std::vector<std::complex<double>> &out)
+template <typename T>
+void idft(std::vector<std::complex<T>> &in, std::vector<std::complex<T>> &out)
 {
-	std::fill(out.begin(), out.end(), std::complex<double>(0, 0));
-	for (size_t i = 0; i < in.size(); ++i)
+	out.resize(in.size());
+	std::fill(out.begin(), out.end(), std::complex<T>(0, 0));
+	for (size_t i = 0; i < out.size(); ++i)
 	{
 		out[i].real(in[0].real() * cos(0) + in[0].imag() * sin(0));
-		double base = 2 * M_PI * i / in.size();
-		double tmp = 0;
+		T base = 2 * M_PI * i / in.size();
+		T tmp = 0;
 		for (size_t j = 1; j < in.size() / 2; ++j)
 		{
 			tmp += base;
@@ -48,6 +52,132 @@ void dft_re(std::vector<std::complex<double>> &in, std::vector<std::complex<doub
 		{
 			tmp = M_PI * i;
 			out[i].real(out[i].real() + in[in.size() / 2].real() * cos(tmp) + in[in.size() / 2].imag() * sin(tmp));
+		}
+		out[i].real(out[i].real() / in.size());
+	}
+}
+
+template <typename T>
+void dct(std::vector<std::complex<T>> &in, std::vector<std::complex<T>> &out)
+{
+	out.resize(in.size());
+	std::fill(out.begin(), out.end(), std::complex<T>(0, 0));
+	T c1 = M_PI / out.size();
+	for (size_t i = 0; i < out.size(); ++i)
+	{
+		for (size_t j = 0; j < in.size(); ++j)
+		{
+			out[i].real(out[i].real() + in[j].real() * cos(c1 * (j + .5) * i));
+		}
+	}
+}
+
+template <typename T>
+void dct(std::vector<T> &in, std::vector<T> &out)
+{
+	out.resize(in.size());
+	std::fill(out.begin(), out.end(), 0);
+	T c1 = M_PI / out.size();
+	for (size_t i = 0; i < out.size(); ++i)
+	{
+		for (size_t j = 0; j < in.size(); ++j)
+		{
+			out[i] += in[j] * cos(c1 * (j + .5) * i);
+		}
+	}
+}
+
+template <typename T>
+void idct(std::vector<std::complex<T>> &in, std::vector<std::complex<T>> &out)
+{
+	out.resize(in.size());
+	T c1 = M_PI / in.size();
+	for (size_t i = 0; i < out.size(); ++i)
+	{
+		out[i].real(.5 * in[0].real());
+		for (size_t j = 1; j < in.size(); ++j)
+		{
+			out[i].real(out[i].real() + in[j].real() * cos(c1 * j * (i + .5)));
+		}
+	}
+}
+
+template <typename T>
+void idct(std::vector<T> &in, std::vector<T> &out)
+{
+	out.resize(in.size());
+	T c1 = M_PI / in.size();
+	for (size_t i = 0; i < out.size(); ++i)
+	{
+		out[i] = .5 * in[0];
+		for (size_t j = 1; j < in.size(); ++j)
+		{
+			out[i] += in[j] * cos(c1 * j * (i + .5));
+		}
+	}
+}
+
+template <typename T>
+void mdct(std::vector<T> &in, std::vector<T> &out)
+{
+	out.resize(in.size() / 2);
+	std::fill(out.begin(), out.end(), 0);
+	T c1 = M_PI / out.size();
+	T c2 = .5 + out.size() / 2;
+	for (size_t i = 0; i < out.size(); ++i)
+	{
+		for (size_t j = 0; j < in.size(); ++j)
+		{
+			out[i] += in[j] * cos(c1 * (j + c2) * (i + .5));
+		}
+	}
+}
+
+template <typename T>
+void mdct(std::vector<std::complex<T>> &in, std::vector<std::complex<T>> &out)
+{
+	out.resize(in.size() / 2);
+	std::fill(out.begin(), out.end(), std::complex<T>(0, 0));
+	T c1 = M_PI / out.size();
+	T c2 = .5 + out.size() / 2;
+	for (size_t i = 0; i < out.size(); ++i)
+	{
+		for (size_t j = 0; j < in.size(); ++j)
+		{
+			out[i].real(out[i].real() + in[j].real() * cos(c1 * (j + c2) * (i + .5)));
+		}
+	}
+}
+
+template <typename T>
+void imdct(std::vector<T> &in, std::vector<T> &out)
+{
+	out.resize(in.size() * 2);
+	std::fill(out.begin(), out.end(), 0);
+	T c1 = M_PI / in.size();
+	T c2 = .5 + in.size() / 2;
+	for (size_t i = 0; i < out.size(); ++i)
+	{
+		for (size_t j = 0; j < in.size(); ++j)
+		{
+			out[i] += in[j] * cos(c1 * (i + c2) * (j + .5));
+		}
+		out[i] /= in.size();
+	}
+}
+
+template <typename T>
+void imdct(std::vector<std::complex<T>> &in, std::vector<std::complex<T>> &out)
+{
+	out.resize(in.size() * 2);
+	std::fill(out.begin(), out.end(), std::complex<T>(0, 0));
+	T c1 = M_PI / in.size();
+	T c2 = .5 + in.size() / 2;
+	for (size_t i = 0; i < out.size(); ++i)
+	{
+		for (size_t j = 0; j < in.size(); ++j)
+		{
+			out[i].real(out[i].real() + in[j].real() * cos(c1 * (i + c2) * (j + .5)));
 		}
 		out[i].real(out[i].real() / in.size());
 	}
@@ -82,7 +212,7 @@ void draw(std::vector<std::complex<double>> &in, std::vector<std::complex<double
 	glColor4f(0, 1, 0, 1);
 	for (size_t i = 0; i < RENDER_WIDTH; ++i)
 	{
-		value = RENDER_HEIGHT / 2 + RENDER_HEIGHT / g_scale * re[i].real();
+		value = RENDER_HEIGHT / 2 + RENDER_HEIGHT / g_scale * re[i].real();// / 960;
 		value = std::min((long)RENDER_HEIGHT, std::max((long)0, value));
 		glVertex2f(i, value);
 		if (i)
@@ -128,7 +258,7 @@ void draw(std::vector<std::complex<double>> &in, std::vector<std::complex<double
 void run()
 {
 	dft(g_in, g_out);
-	dft_re(g_out, g_re);
+	idft(g_out, g_re);
 }
 
 static bool g_changed = false;
@@ -181,12 +311,9 @@ int main()
 	for (size_t i = 0; i < g_in.size(); ++i)
 	{
 		g_in[i] = std::complex<double>(0, 0);
-		g_in[i].real(g_in[i].real() + sin(i / static_cast<double>(g_in.size()) * FREQ * 1 * M_PI * 2));
-		g_in[i].real(g_in[i].real() + sin(i / static_cast<double>(g_in.size()) * FREQ * 2 * M_PI * 2));
-		g_in[i].real(g_in[i].real() + sin(i / static_cast<double>(g_in.size()) * FREQ * 3 * M_PI * 2));
-		g_in[i].real(g_in[i].real() + sin(i / static_cast<double>(g_in.size()) * FREQ * 4 * M_PI * 2));
-		g_in[i].real(g_in[i].real() + sin(i / static_cast<double>(g_in.size()) * FREQ * 5 * M_PI * 2));
-		g_in[i].real(g_in[i].real() + sin(i / static_cast<double>(g_in.size()) * FREQ * 6 * M_PI * 2));
+		int osef = 2;
+		for (int j = 0; j < osef; ++j)
+			g_in[i].real(g_in[i].real() + sin(i / static_cast<double>(g_in.size()) * FREQ * pow(2, j) * M_PI * 2) / osef);
 		//g_in[i].real(g_in[i].real() + (i % 300) / 300.);
 		//g_in[i].real(g_in[i].real() + (i < RENDER_WIDTH / 2 ? 1 : -1));
 		//g_in[i].real(g_in[i].real() + rand() / (float)RAND_MAX);
